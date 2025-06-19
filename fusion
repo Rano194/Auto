@@ -1,0 +1,57 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local clientData = require(ReplicatedStorage.ClientModules.Core.ClientData)
+local player = Players.LocalPlayer
+
+task.spawn(function()
+	while true do
+		task.wait(3)
+
+		local playerData = clientData.get_data()[tostring(player)]
+		local petGroupsNormal = {} -- Обычные (не неон)
+		local petGroupsNeon = {} -- Неон (не мега)
+
+		for _, pet in pairs(playerData.inventory.pets or {}) do
+			local kind = pet.kind
+			local uid = pet.uid
+			local props = pet.properties
+
+			if props.age == 6 and not props.neon and not props.mega_neon then
+				petGroupsNormal[kind] = petGroupsNormal[kind] or {}
+				table.insert(petGroupsNormal[kind], uid)
+
+			elseif props.age == 6 and props.neon and not props.mega_neon then
+				petGroupsNeon[kind] = petGroupsNeon[kind] or {}
+				table.insert(petGroupsNeon[kind], uid)
+			end
+		end
+
+		-- Крафт обычных неонов
+		for kind, uids in pairs(petGroupsNormal) do
+			while #uids >= 4 do
+				local args = {
+					{ unpack(uids, 1, 4) }
+				}
+				print("[INFO] Крафт неона для", kind)
+				ReplicatedStorage.API["PetAPI/DoNeonFusion"]:InvokeServer(unpack(args))
+
+				for i = 1, 4 do table.remove(uids, 1) end
+				task.wait(1)
+			end
+		end
+
+		-- Крафт мега неонов
+		for kind, uids in pairs(petGroupsNeon) do
+			while #uids >= 4 do
+				local args = {
+					{ unpack(uids, 1, 4) }
+				}
+				print("[INFO] Крафт мега-неона для", kind)
+				ReplicatedStorage.API["PetAPI/DoNeonFusion"]:InvokeServer(unpack(args))
+
+				for i = 1, 4 do table.remove(uids, 1) end
+				task.wait(1)
+			end
+		end
+	end
+end)
